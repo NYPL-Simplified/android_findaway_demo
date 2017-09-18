@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:weightSum="3"
+    >
+
+    <!-- the top navigation area has general controls and TOC -->
+    <LinearLayout
+        android:id="@+id/top_nav_bar"
+        android:layout_width="match_parent"
+        android:layout_height="0px"
+        android:layout_weight="1"
+        android:backgroundTint="@android:color/holo_red_dark"
+        android:orientation="vertical">
+
+    </LinearLayout><!-- top_nav_bar -->
+
+    <LinearLayout
+        android:id="@+id/middle_info_area"
+        android:layout_width="match_parent"
+        android:layout_height="0px"
+        android:layout_weight="1"
+        android:backgroundTint="@android:color/holo_green_dark"
+        android:gravity="center_horizontal"
+        android:orientation="vertical">
+
+        <!-- don't show up, and are demo bits from tutorial 2 anyway -->
+        <Button
+            android:id="@+id/play_pause_button_123"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.2"
+            android:text="Toggle Play/Pause"
+            />
+
+    </LinearLayout> <!-- middle_info_area -->
+
+
+    <LinearLayout
+        android:id="@+id/bottom_nav_bar_media_controls"
+        android:layout_width="match_parent"
+        android:layout_height="0px"
+        android:layout_weight="1"
+        android:backgroundTint="@android:color/holo_blue_light"
+        android:orientation="vertical">
+
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_weight="2"
+            >
+
+            <TextView
+                android:id="@+id/line1"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_above="@+id/line2"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:gravity="center_horizontal"
+                android:maxLines="1"
+                android:shadowColor="@android:color/black"
+                android:shadowRadius="20"
+                android:textAppearance="?android:attr/textAppearanceLarge"
+                />
+
+        </LinearLayout>
+
+
+    </LinearLayout> <!-- bottom_nav_bar_media_controls -->
+
+
+</LinearLayout>

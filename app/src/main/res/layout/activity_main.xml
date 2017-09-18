@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="org.nypl.findawaysdkdemo.MainDemoActivity">
+
+    <!-- The FrameLayout serves as a container, into which we will load various content frames. -->
+    <!-- Start with the book selector fragment, then through the java code will replace this with the player-related fragment. -->
+    <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                 android:id="@+id/fragment_container"
+                 android:layout_width="match_parent"
+                 android:layout_height="match_parent">
+
+        <!-- NOTE:  Fragments are called through their class, bc the class has the lifecycle methods to start the view.  -->
+        <!-- fragment
+            android:id="@+id/main_fragment_frame"
+            android:layout_height="match_parent"
+            android:layout_width="match_parent"
+            android:name="org.nypl.audiobookplaybacklibrary.SelectBookFragment"
+            tools:layout="@layout/fragment_select_book"/ -->
+
+    </FrameLayout>
+</LinearLayout>
