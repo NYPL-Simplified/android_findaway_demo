@@ -2,7 +2,7 @@ apply plugin: 'com.android.library'
 
 android {
     compileSdkVersion 25
-    buildToolsVersion "26.0.0"
+    buildToolsVersion '26.0.2'
 
     defaultConfig {
         minSdkVersion 19
@@ -12,6 +12,7 @@ android {
 
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
 
+        javaCompileOptions.annotationProcessorOptions.includeCompileClasspath = true
     }
     buildTypes {
         release {
@@ -43,9 +44,17 @@ dependencies {
 
     compile 'com.android.support:appcompat-v7:25.3.1'
 
-    compile 'io.audioengine.mobile:all:7.1.0'
-    compile 'io.reactivex:rxjava:1.0.16'
+    compile 'io.audioengine.mobile:all:7.2.8'
+    //compile 'io.reactivex:rxjava:1.0.16'
     compile 'io.reactivex:rxandroid:1.2.1'
 
+    //compile 'com.squareup.retrofit2:retrofit:2.0.2'
+    //compile 'com.squareup.retrofit2:converter-gson:2.0.2'
+    //compile 'com.squareup.retrofit2:adapter-rxjava:2.0.2'
+    //compile 'com.squareup.picasso:picasso:2.5.0'
+    //compile 'com.jakewharton:butterknife:8.1.0'
+    //compile 'com.jakewharton:butterknife:8.1.0'
+
     testCompile 'junit:junit:4.12'
+    implementation 'com.android.support.constraint:constraint-layout:1.0.2'
 }

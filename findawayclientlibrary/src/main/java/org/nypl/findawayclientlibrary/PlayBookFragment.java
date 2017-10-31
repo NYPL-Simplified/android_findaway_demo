@@ -12,9 +12,13 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
+
+import io.audioengine.mobile.DownloadEvent;
 
 import static android.view.View.INVISIBLE;
 import static android.view.View.VISIBLE;
@@ -40,21 +44,20 @@ public class PlayBookFragment extends BaseFragment {
   // so can do a search in log msgs for just this class's output
   private final String TAG = APP_TAG + "PlayBookFragment";
 
-  private ImageView mSkipPrev;
-  private ImageView mSkipNext;
-  private ImageView mPlayPause;
-  private TextView mStart;
-  private TextView mEnd;
+  private Button downloadButton;
+  private ProgressBar downloadProgress;
+  private TextView chapterPercentage, contentPercentage;
 
-  private SeekBar mSeekbar;
+  private View fragmentView = null;
+
+  //private SeekBar mSeekbar;
 
   // non-user-interactive, usually used to show download progress
   //private ProgressBar mLoading;
-  private View mControllers;
-  private Drawable mPauseDrawable;
-  private Drawable mPlayDrawable;
-  private ImageView mBackgroundImage;
-  private String mCurrentArtUrl;
+  //private Drawable mPauseDrawable;
+  //private Drawable mPlayDrawable;
+  //private ImageView mBackgroundImage;
+  //private String mCurrentArtUrl;
 
 
   /* ---------------------------------- LIFECYCLE METHODS ----------------------------------- */
@@ -83,76 +86,60 @@ public class PlayBookFragment extends BaseFragment {
   public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
     super.onViewCreated(view, savedInstanceState);
 
-    initializeControlsUI(view);
+    // save the view handle, for future convenience
+    fragmentView = view;
 
-    initializeTOC(view);
+    initializeControlsUI(view);
   }
 
 
   /**
-   * TODO: Hooking up media controls to UI play/pause/etc. buttons goes here.
+   * Hooking up media controls to UI play/pause/etc. buttons goes here.
    *
    * @param view
    */
   private void initializeControlsUI(View view) {
-    //mBackgroundImage = (ImageView) view.findViewById(R.id.background_image);
-    mPauseDrawable = ContextCompat.getDrawable(getActivity(), R.drawable.ic_pause_circle_filled_black_24dp);
-    mPlayDrawable = ContextCompat.getDrawable(getContext(), R.drawable.ic_play_circle_outline_black_24dp);
-    mControllers = view.findViewById(R.id.bottom_nav_bar_media_controls);
+    // set up the UI elements that will give download info
+    downloadButton = (Button) fragmentView.findViewById(R.id.download_button);
+    downloadProgress = (ProgressBar) fragmentView.findViewById(R.id.download_progress);
+    chapterPercentage = (TextView) fragmentView.findViewById(R.id.chapterPercentage);
+    contentPercentage = (TextView) fragmentView.findViewById(R.id.contentPercentage);
 
-    mPlayPause.setOnClickListener(new View.OnClickListener() {
-      @Override
-      public void onClick(View v) {
-        PlaybackStateCompat state = callbackActivity.getController().getPlaybackState();
-        if (state != null) {
-          MediaControllerCompat.TransportControls controls =
-                  callbackActivity.getController().getTransportControls();
-          switch (state.getState()) {
-            case PlaybackStateCompat.STATE_PLAYING: // fall through
-            case PlaybackStateCompat.STATE_BUFFERING:
-              controls.pause();
-              break;
-            case PlaybackStateCompat.STATE_PAUSED:
-            case PlaybackStateCompat.STATE_STOPPED:
-              controls.play();
-              break;
-            default:
-              //LogHelper.d(TAG, "onClick with state ", state.getState());
-          }
-        }
-      }
-    });
+    downloadButton.setOnClickListener((View.OnClickListener) callbackActivity);
+    downloadButton.setOnLongClickListener((View.OnLongClickListener) callbackActivity);
 
-    mSeekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-      @Override
-      public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-        mStart.setText(DateUtils.formatElapsedTime(progress / 1000));
-      }
-
-      @Override
-      public void onStartTrackingTouch(SeekBar seekBar) {
-        // stopSeekbarUpdate();
-      }
-
-      @Override
-      public void onStopTrackingTouch(SeekBar seekBar) {
-        callbackActivity.getController().getTransportControls().seekTo(seekBar.getProgress());
-        // scheduleSeekbarUpdate();
-      }
-    });
 
   }// initializeControlsUI
 
 
-  /**
-   * TODO:  Reading returned metadata and hooking up book info to UI goes here.
-   *
-   * @param view
-   */
-  private void initializeTOC(View view) {
 
+  /**
+   * Change the message on the download button, letting the user know where we are in the downloading progress.
+   */
+  public void redrawDownloadButton(String newText) {
+    downloadButton.setText(newText);
   }
 
+
+  /**
+   * Update the progress bar to reflect where we are in the downloading.
+   */
+  public void redrawProgress(DownloadEvent downloadEvent) {
+    this.redrawProgress(downloadEvent.contentPercentage, downloadEvent.chapterPercentage);
+  }
+
+
+  public void redrawProgress(Integer primaryProgress, Integer secondaryProgress) {
+    downloadProgress.setProgress(primaryProgress);
+    downloadProgress.setSecondaryProgress(secondaryProgress);
+    contentPercentage.setText(getString(R.string.contentPercentage, primaryProgress));
+    chapterPercentage.setText(getString(R.string.chapterPercentage, secondaryProgress));
+  }
+
+
+  public void resetProgress() {
+    this.redrawProgress(0, 0);
+  }
 
   /* ---------------------------------- /LIFECYCLE METHODS ----------------------------------- */
 
