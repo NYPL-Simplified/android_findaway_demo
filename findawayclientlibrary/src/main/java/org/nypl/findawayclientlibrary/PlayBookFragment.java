@@ -1,31 +1,19 @@
 package org.nypl.findawayclientlibrary;
 
-import android.graphics.drawable.Drawable;
 import android.os.Bundle;
-import android.os.SystemClock;
 import android.support.annotation.Nullable;
-import android.support.v4.content.ContextCompat;
-import android.support.v4.media.session.MediaControllerCompat;
-import android.support.v4.media.session.PlaybackStateCompat;
-import android.text.format.DateUtils;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.ImageView;
+import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
 import io.audioengine.mobile.DownloadEvent;
-
-import static android.view.View.INVISIBLE;
-import static android.view.View.VISIBLE;
-
-//import android.support.v4.app.Fragment;
-//import android.support.v4.app.FragmentManager;
-//import android.support.v4.app.FragmentTransaction;
+import io.audioengine.mobile.PlaybackEvent;
+import io.audioengine.mobile.util.StringUtils;
 
 
 /**
@@ -44,13 +32,16 @@ public class PlayBookFragment extends BaseFragment {
   // so can do a search in log msgs for just this class's output
   private final String TAG = APP_TAG + "PlayBookFragment";
 
+  private View fragmentView = null;
+
   private Button downloadButton;
   private ProgressBar downloadProgress;
   private TextView chapterPercentage, contentPercentage;
 
-  private View fragmentView = null;
+  private TextView currentTime, remainingTime;
+  private ImageButton previous, back, play, forward, next;
 
-  //private SeekBar mSeekbar;
+  private SeekBar playbackSeekBar;
 
   // non-user-interactive, usually used to show download progress
   //private ProgressBar mLoading;
@@ -102,12 +93,33 @@ public class PlayBookFragment extends BaseFragment {
     // set up the UI elements that will give download info
     downloadButton = (Button) fragmentView.findViewById(R.id.download_button);
     downloadProgress = (ProgressBar) fragmentView.findViewById(R.id.download_progress);
-    chapterPercentage = (TextView) fragmentView.findViewById(R.id.chapterPercentage);
-    contentPercentage = (TextView) fragmentView.findViewById(R.id.contentPercentage);
+    chapterPercentage = (TextView) fragmentView.findViewById(R.id.chapter_download_percentage);
+    contentPercentage = (TextView) fragmentView.findViewById(R.id.content_download_percentage);
 
+    // tell the download buttons the parent activity will be listening to them
     downloadButton.setOnClickListener((View.OnClickListener) callbackActivity);
     downloadButton.setOnLongClickListener((View.OnLongClickListener) callbackActivity);
 
+    // set up the UI elements that will give playback info
+    previous = (ImageButton) fragmentView.findViewById(R.id.previous);
+    back = (ImageButton) fragmentView.findViewById(R.id.back10);
+    play = (ImageButton) fragmentView.findViewById(R.id.play);
+    forward = (ImageButton) fragmentView.findViewById(R.id.forward10);
+    next = (ImageButton) fragmentView.findViewById(R.id.next);
+    playbackSeekBar = (SeekBar) fragmentView.findViewById(R.id.playback_seek_bar);
+
+    currentTime = (TextView) fragmentView.findViewById(R.id.position);
+    remainingTime = (TextView) fragmentView.findViewById(R.id.remaining);
+
+    // tell the playback buttons the parent activity will be listening to them
+    previous.setOnClickListener((View.OnClickListener) callbackActivity);
+    back.setOnClickListener((View.OnClickListener) callbackActivity);
+    play.setOnClickListener((View.OnClickListener) callbackActivity);
+    forward.setOnClickListener((View.OnClickListener) callbackActivity);
+    next.setOnClickListener((View.OnClickListener) callbackActivity);
+    playbackSeekBar.setOnSeekBarChangeListener((SeekBar.OnSeekBarChangeListener) callbackActivity);
+
+    play.setTag("play");
 
   }// initializeControlsUI
 
@@ -122,14 +134,58 @@ public class PlayBookFragment extends BaseFragment {
 
 
   /**
-   * Update the progress bar to reflect where we are in the downloading.
+   * Change message and pic on play button to match current state.
+   *
+   * @param newText
+   * @param newImageId
    */
-  public void redrawProgress(DownloadEvent downloadEvent) {
-    this.redrawProgress(downloadEvent.contentPercentage, downloadEvent.chapterPercentage);
+  public void redrawPlayButton(String newText, int newImageId) {
+    play.setImageResource(newImageId);
+    play.setTag(newText);
   }
 
 
-  public void redrawProgress(Integer primaryProgress, Integer secondaryProgress) {
+  /**
+   * Move the seek bar to reflect the current playback position within the book chapter.
+   * Making sure the passed event is of type progress update happens in the calling code.
+   *
+   * @param playbackEvent
+   */
+  public void redrawPlaybackPosition(PlaybackEvent playbackEvent) {
+
+    playbackSeekBar.setMax((int) playbackEvent.duration);
+    playbackSeekBar.setProgress((int) playbackEvent.position);
+
+    currentTime.setText(StringUtils.getTimeString(playbackEvent.position));
+    remainingTime.setText(StringUtils.getTimeString(playbackEvent.duration - playbackEvent.position));
+  }
+
+
+  /**
+   * Move the audio playback position in response to user shifting the seek bar.
+   *
+   * @param seekBar
+   * @param progress
+   * @param fromUser
+   */
+  public void redrawPlaybackPosition(SeekBar seekBar, int progress, boolean fromUser) {
+    if (fromUser) {
+      if (seekBar.getId() == this.playbackSeekBar.getId()) {
+        currentTime.setText(StringUtils.getTimeString(progress));
+      }
+    }
+  }
+
+
+  /**
+   * Update the progress bar to reflect where we are in the downloading.
+   */
+  public void redrawDownloadProgress(DownloadEvent downloadEvent) {
+    this.redrawDownloadProgress(downloadEvent.contentPercentage, downloadEvent.chapterPercentage);
+  }
+
+
+  public void redrawDownloadProgress(Integer primaryProgress, Integer secondaryProgress) {
     downloadProgress.setProgress(primaryProgress);
     downloadProgress.setSecondaryProgress(secondaryProgress);
     contentPercentage.setText(getString(R.string.contentPercentage, primaryProgress));
@@ -138,7 +194,7 @@ public class PlayBookFragment extends BaseFragment {
 
 
   public void resetProgress() {
-    this.redrawProgress(0, 0);
+    this.redrawDownloadProgress(0, 0);
   }
 
   /* ---------------------------------- /LIFECYCLE METHODS ----------------------------------- */

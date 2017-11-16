@@ -8,13 +8,13 @@ import android.support.v4.media.session.MediaControllerCompat;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.ProgressBar;
-import android.widget.TextView;
+import android.widget.SeekBar;
 import android.widget.Toast;
 
 import java.io.File;
 
-import io.audioengine.mobile.Content;
+import io.audioengine.mobile.AudioEngineEvent;
+import io.audioengine.mobile.PlaybackEvent;
 import io.audioengine.mobile.config.LogLevel;
 import io.audioengine.mobile.AudioEngine;
 import io.audioengine.mobile.AudioEngineException;
@@ -27,6 +27,7 @@ import io.audioengine.mobile.persistence.DownloadEngine;
 import io.audioengine.mobile.persistence.DownloadRequest;
 import io.audioengine.mobile.persistence.DownloadType;
 
+import io.audioengine.mobile.play.PlaybackEngine;
 import rx.Observer;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
@@ -79,8 +80,12 @@ import rx.schedulers.Schedulers;
  * 10-24 18:31:34.948 1735-2207/system_process W/ActivityManager:   Force finishing activity org.nypl.findawaysdkdemo/org.nypl.findawayclientlibrary.PlayBookActivity
  *
  * Created by daryachernikhova on 9/14/17.
+ *
+ * // TODO:  11-06 14:38:53.216 1335-2043/? E/BufferQueueProducer: [Toast] cancelBuffer: BufferQueue has been abandoned
+ * TODO: crashing on multiple clicks on Pause button.
  */
-public class PlayBookActivity extends BaseActivity implements View.OnClickListener, View.OnLongClickListener, Observer<DownloadEvent> {
+public class PlayBookActivity extends BaseActivity implements View.OnClickListener, View.OnLongClickListener,
+                                                              Observer<AudioEngineEvent>, SeekBar.OnSeekBarChangeListener {
   // so can filter all log msgs belonging to my app
   private static final String APP_TAG = "FDLIB.";
   // so can do a search in log msgs for just this class's output
@@ -91,8 +96,15 @@ public class PlayBookActivity extends BaseActivity implements View.OnClickListen
 
   PlayBookFragment playBookFragment = null;
 
-  DownloadEngine downloadEngine;
+  // the one engine to control them all
+  private static AudioEngine audioEngine = null;
+
+  // fulfills books
+  DownloadEngine downloadEngine = null;
   private DownloadRequest downloadRequest;
+
+  // plays drm-ed audio
+  private PlaybackEngine playbackEngine;
 
   // follows all download engine events
   private Subscription eventsSubscription;
@@ -101,7 +113,7 @@ public class PlayBookActivity extends BaseActivity implements View.OnClickListen
   // Kevin's
   //String sessionId = "964b5796-c67f-492d-8024-a69f3ba9be53";
   // mine:
-  String sessionId = "139bbcd9-6426-474d-9b02-ed3fc438be66";
+  String sessionId = "be101b8f-5013-4328-9898-5fe24b302641";
 
   // Kevin's test value
   // String contentId = "83380";
@@ -112,7 +124,15 @@ public class PlayBookActivity extends BaseActivity implements View.OnClickListen
   //String license = "5744a7b7b692b13bf8c06865";
   // Darya's value keyed to licenseId of the book NYPL bought through Bibliotheca
   //String license = "57db1411afde9f3e7a3c041b";
-  String license = "580e7da000deff122d48a1c9";
+  String license = "57ff8f27afde9f3cea3c041b";
+
+
+  /*
+  {"format":"MP3","items":[{"title":"Track 1","sequence":1,"part":0,"duration":16201},{"title":"Track 2","sequence":2,"part":0,"duration":336070},{"title":"Track 3","sequence":3,"part":0,"duration":247803},{"title":"Track 4","sequence":4,"part":0,"duration":348714},{"title":"Track 5","sequence":5,"part":0,"duration":508844},{"title":"Track 6","sequence":6,"part":0,"duration":323767},{"title":"Track 7","sequence":7,"part":0,"duration":386408},{"title":"Track 8","sequence":8,"part":0,"duration":415953},{"title":"Track 9","sequence":9,"part":0,"duration":275832},{"title":"Track 10","sequence":10,"part":0,"duration":372851},{"title":"Track 11","sequence":11,"part":0,"duration":515793},{"title":"Track 12","sequence":12,"part":0,"duration":289886},{"title":"Track 13","sequence":13,"part":0,"duration":345239},{"title":"Track 14","sequence":14,"part":0,"duration":334111},{"title":"Track 15","sequence":15,"part":0,"duration":356080},{"title":"Track 16","sequence":16,"part":0,"duration":459055},{"title":"Track 17","sequence":17,"part":0,"duration":310993},{"title":"Track 18","sequence":18,"part":0,"duration":294771},{"title":"Track 19","sequence":19,"part":0,"duration":443277},{"title":"Track 20","sequence":20,"part":0,"duration":264286},{"title":"Track 21","sequence":21,"part":0,"duration":348322},{"title":"Track 22","sequence":22,"part":0,"duration":355009},{"title":"Track 23","sequence":23,"part":0,"duration":346441},{"title":"Track 24","sequence":24,"part":0,"duration":220191},{"title":"Track 25","sequence":25,"part":0,"duration":373164},{"title":"Track 26","sequence":26,"part":0,"duration":196394},{"title":"Track 27","sequence":27,"part":0,"duration":399313},{"title":"Track 28","sequence":28,"part":0,"duration":337089},{"title":"Track 29","sequence":29,"part":0,"duration":297069},{"title":"Track 30","sequence":30,"part":0,"duration":240645},{"title":"Track 31","sequence":31,"part":0,"duration":387323},{"title":"Track 32","sequence":32,"part":0,"duration":298036},{"title":"Track 33","sequence":33,"part":0,"duration":367600},{"title":"Track 34","sequence":34,"part":0,"duration":269197},{"title":"Track 35","sequence":35,"part":0,"duration":494189},{"title":"Track 36","sequence":36,"part":0,"duration":393932},{"title":"Track 37","sequence":37,"part":0,"duration":309321},{"title":"Track 38","sequence":38,"part":0,"duration":341321},{"title":"Track 39","sequence":39,"part":0,"duration":415091},{"title":"Track 40","sequence":40,"part":0,"duration":304044},{"title":"Track 41","sequence":41,"part":0,"duration":417076},{"title":"Track 42","sequence":42,"part":0,"duration":368932},{"title":"Track 43","sequence":43,"part":0,"duration":411198},{"title":"Track 44","sequence":44,"part":0,"duration":298271},{"title":"Track 45","sequence":45,"part":0,"duration":300230},{"title":"Track 46","sequence":46,"part":0,"duration":342758},{"title":"Track 47","sequence":47,"part":0,"duration":447848},{"title":"Track 48","sequence":48,"part":0,"duration":527914},{"title":"Track 49","sequence":49,"part":0,"duration":406523},{"title":"Track 50","sequence":50,"part":0,"duration":334398},{"title":"Track 51","sequence":51,"part":0,"duration":307518},{"title":"Track 52","sequence":52,"part":0,"duration":407071},{"title":"Track 53","sequence":53,"part":0,"duration":488390},{"title":"Track 54","sequence":54,"part":0,"duration":432854},{"title":"Track 55","sequence":55,"part":0,"duration":364074},{"title":"Track 56","sequence":56,"part":0,"duration":367130},{"title":"Track 57","sequence":57,"part":0,"duration":329566},{"title":"Track 58","sequence":58,"part":0,"duration":305925},{"title":"Track 59","sequence":59,"part":0,"duration":528070},{"title":"Track 60","sequence":60,"part":0,"duration":416031},{"title":"Track 61","sequence":61,"part":0,"duration":524283},{"title":"Track 62","sequence":62,"part":0,"duration":306683},{"title":"Track 63","sequence":63,"part":0,"duration":297932},{"title":"Track 64","sequence":64,"part":0,"duration":384972},{"title":"Track 65","sequence":65,"part":0,"duration":383639},{"title":"Track 66","sequence":66,"part":0,"duration":441683},{"title":"Track 67","sequence":67,"part":0,"duration":263528},{"title":"Track 68","sequence":68,"part":0,"duration":412478},{"title":"Track 69","sequence":69,"part":0,"duration":252792},{"title":"Track 70","sequence":70,"part":0,"duration":324080},{"title":"Track 71","sequence":71,"part":0,"duration":361487},{"title":"Track 72","sequence":72,"part":0,"duration":403910},{"title":"Track 73","sequence":73,"part":0,"duration":510594},{"title":"Track 74","sequence":74,"part":0,"duration":535594},{"title":"Track 75","sequence":75,"part":0,"duration":472769},{"title":"Track 76","sequence":76,"part":0,"duration":284008},{"title":"Track 77","sequence":77,"part":0,"duration":419114},{"title":"Track 78","sequence":78,"part":0,"duration":417990},{"title":"Track 79","sequence":79,"part":0,"duration":32318}],
+    "sessionKey":"be101b8f-5013-4328-9898-5fe24b302641",
+          "accountId":"3M","checkoutId":"59fca29f5cba2a0c0b900b7b","fulfillmentId":"102244",
+          "licenseId":"57ff8f27afde9f3cea3c041b"}
+  */
 
   // the part we're downloading right now
   int part = 0;
@@ -120,6 +140,9 @@ public class PlayBookActivity extends BaseActivity implements View.OnClickListen
   // the chapter we're downloading right now
   int chapter = 1;
 
+  int seekTo;
+
+  long lastPlaybackPosition;
 
 
   /* ---------------------------------- LIFECYCLE METHODS ----------------------------------- */
@@ -189,6 +212,8 @@ public class PlayBookActivity extends BaseActivity implements View.OnClickListen
     // ask the AudioEngine to start a DownloadEngine
     this.initDownloadEngine();
 
+    // ask the AudioEngine to start a PlaybackEngine
+    this.initPlaybackEngine();
   }// onCreate
 
 
@@ -291,11 +316,13 @@ public class PlayBookActivity extends BaseActivity implements View.OnClickListen
         Log.d(TAG, "Got initial progress " + progress);
 
         if (playBookFragment != null) {
-          playBookFragment.redrawProgress(progress, 0);
+          playBookFragment.redrawDownloadProgress(progress, 0);
         }
       }
     }); //downloadEngine.progress.subscribe
 
+
+    eventsSubscription = playbackEngine.events().subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe(this);
   }
 
 
@@ -345,7 +372,7 @@ public class PlayBookActivity extends BaseActivity implements View.OnClickListen
     super.onStart();
     Log.d(TAG, "Activity.onStart");
 
-  }// onStart
+  }
 
 
   /**
@@ -366,13 +393,18 @@ public class PlayBookActivity extends BaseActivity implements View.OnClickListen
 
 
   /**
-   * TODO: AudioEngine needs the following setup: [...].
+   * AudioEngine needs the sessionKey that comes from the Bibliotheca
+   * https://partner.yourcloudlibrary.com/cirrus/library/[libraryId]/GetItemAudioFulfillment endpoint.
    */
   private void initAudioEngine() {
     try {
       AudioEngine.init(this, sessionId, LogLevel.VERBOSE);
+      audioEngine = AudioEngine.getInstance();
+    } catch (AudioEngineException e) {
+      Log.e(TAG, "Error getting audio engine: " + e.getMessage());
+      e.printStackTrace();
     } catch (Exception e) {
-      Log.e(TAG, "Error getting download engine: " + e.getMessage());
+      Log.e(TAG, "Error getting audio engine: " + e.getMessage());
       e.printStackTrace();
     }
   }
@@ -383,7 +415,11 @@ public class PlayBookActivity extends BaseActivity implements View.OnClickListen
    */
   private void initDownloadEngine() {
     try {
-      downloadEngine = AudioEngine.getInstance().getDownloadEngine();
+      if (audioEngine == null) {
+        throw new Exception("Must initialize AudioEngine before trying to get a DownloadEngine.");
+      }
+
+      downloadEngine = audioEngine.getDownloadEngine();
     } catch (AudioEngineException e) {
       // Call to getDownloadEngine will throw an exception if you have not previously
       // called init() on AudioEngine with a valid Context and Session.
@@ -393,6 +429,29 @@ public class PlayBookActivity extends BaseActivity implements View.OnClickListen
       Log.e(TAG, "Error getting download engine: " + e.getMessage());
       e.printStackTrace();
     }
+  }
+
+
+  /**
+   * TODO: .
+   */
+  private void initPlaybackEngine() {
+    try {
+      if (audioEngine == null) {
+        throw new Exception("Must initialize AudioEngine before trying to get a PlaybackEngine.");
+      }
+
+      playbackEngine = audioEngine.getPlaybackEngine();
+    } catch (AudioEngineException e) {
+      Log.e(TAG, "Error getting playback engine: " + e.getMessage());
+      e.printStackTrace();
+    } catch (Exception e) {
+      Log.e(TAG, "Error getting playback engine: " + e.getMessage());
+      e.printStackTrace();
+    }
+
+    seekTo = 0;
+    lastPlaybackPosition = 0;
   }
 
 
@@ -495,7 +554,45 @@ public class PlayBookActivity extends BaseActivity implements View.OnClickListen
         downloadEngine.delete(DeleteRequest.builder().contentId(contentId).build());
       }
     }
-  }
+
+
+    if (view.getId() == R.id.play && view.getTag().equals("play")) {
+
+      playbackEngine.play(license, contentId, part, chapter, (int) lastPlaybackPosition);
+      if (playBookFragment != null) {
+        playBookFragment.redrawPlayButton(getResources().getString(R.string.pause), R.drawable.ic_pause_circle_outline_black_24dp);
+      }
+
+    } else if (view.getId() == R.id.play && view.getTag().equals("pause")) {
+
+      playbackEngine.pause();
+
+      if (playBookFragment != null) {
+        playBookFragment.redrawPlayButton(getResources().getString(R.string.resume), R.drawable.ic_play_circle_outline_black_24dp);
+      }
+
+    } else if (view.getId() == R.id.play && view.getTag().equals("resume")) {
+
+      playbackEngine.resume();
+
+      if (playBookFragment != null) {
+        playBookFragment.redrawPlayButton(getResources().getString(R.string.pause), R.drawable.ic_pause_circle_outline_black_24dp);
+      }
+    } else if (view.getId() == R.id.back10) {
+
+      playbackEngine.seekTo(playbackEngine.getPosition() - 10000);
+    } else if (view.getId() == R.id.forward10) {
+
+      playbackEngine.seekTo(playbackEngine.getPosition() + 10000);
+    } else if (view.getId() == R.id.previous) {
+
+      playbackEngine.previousChapter();
+    } else if (view.getId() == R.id.next) {
+
+      playbackEngine.nextChapter();
+    }
+
+  }// onClick
 
 
   @Override
@@ -506,7 +603,7 @@ public class PlayBookActivity extends BaseActivity implements View.OnClickListen
 
   @Override
   public void onError(Throwable e) {
-    Log.e(TAG, "There was an error in the download process: " + e.getMessage());
+    Log.e(TAG, "There was an error in the download or playback process: " + e.getMessage());
     e.printStackTrace();
   }
 
@@ -531,14 +628,30 @@ public class PlayBookActivity extends BaseActivity implements View.OnClickListen
 
 
   /**
+   * Catches AudioEngineEvent events and redirects processing to either the download or playback event-handling methods.
+   *
+   * Download events are described here:  http://developer.audioengine.io/sdk/android/v7/download-engine .
+   * @param engineEvent
+   */
+  @Override
+  public void onNext(AudioEngineEvent engineEvent) {
+    if (engineEvent instanceof DownloadEvent) {
+      this.onNext((DownloadEvent) engineEvent);
+    } else {
+      if (engineEvent instanceof PlaybackEvent) {
+        this.onNext((PlaybackEvent) engineEvent);
+      }
+    }
+  }
+
+
+  /**
    * Catches DownloadEngine events.
    *
    * Download events are described here:  http://developer.audioengine.io/sdk/android/v7/download-engine .
    * @param downloadEvent
    */
-  @Override
   public void onNext(DownloadEvent downloadEvent) {
-
     File filesDir = getFilesDir();
     if (filesDir.exists()) {
       Log.d(TAG, "filesDir.getAbsolutePath=" + filesDir.getAbsolutePath());
@@ -565,9 +678,9 @@ public class PlayBookActivity extends BaseActivity implements View.OnClickListen
 
 
     Log.d(TAG, "downloadEvent.chapter=" + downloadEvent.chapter);
-    Log.d(TAG, "downloadEvent.chapterPercentage=" + downloadEvent.chapterPercentage);
+    Log.d(TAG, "downloadEvent.chapter_download_percentage=" + downloadEvent.chapterPercentage);
     Log.d(TAG, "downloadEvent.content=" + downloadEvent.content);
-    Log.d(TAG, "downloadEvent.contentPercentage=" + downloadEvent.contentPercentage);
+    Log.d(TAG, "downloadEvent.content_download_percentage=" + downloadEvent.contentPercentage);
     Log.d(TAG, "downloadEvent.toString=" + downloadEvent.toString());
 
     if (downloadEvent.isError()) {
@@ -674,8 +787,77 @@ public class PlayBookActivity extends BaseActivity implements View.OnClickListen
         Log.w(TAG, "Unknown download event: " + downloadEvent.code);
       }
     }
+  }// onNext(DownloadEvent)
+
+
+  /**
+   *
+   * @param playbackEvent
+   */
+  public void onNext(PlaybackEvent playbackEvent) {
+
+    if (playbackEvent.code.equals(PlaybackEvent.PLAYBACK_PROGRESS_UPDATE)) {
+      if (playBookFragment != null) {
+        playBookFragment.redrawPlaybackPosition(playbackEvent);
+      }
+
+      lastPlaybackPosition = playbackEvent.position;
+    } else if (playbackEvent.code.equals(PlaybackEvent.PLAYBACK_STARTED)) {
+
+      Toast.makeText(this, "Playback started.", Toast.LENGTH_SHORT).show();
+    } else if (playbackEvent.code.equals(PlaybackEvent.PLAYBACK_PAUSED)) {
+
+      Toast.makeText(this, "Playback paused.", Toast.LENGTH_SHORT).show();
+    } else if (playbackEvent.code.equals(PlaybackEvent.PLAYBACK_STOPPED)) {
+
+      Toast.makeText(this, "Playback stopped.", Toast.LENGTH_SHORT).show();
+    }
   }
 
+
+  /**
+   * Respond to user manually selecting playback position within the chapter.
+   *
+   * @param seekBar
+   * @param progress
+   * @param fromUser
+   */
+  @Override
+  public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+
+    if (fromUser) {
+      if (playBookFragment != null) {
+        playBookFragment.redrawPlaybackPosition(seekBar, progress, fromUser);
+      }
+
+      seekTo = progress;
+    }
+  }
+
+
+  @Override
+  public void onStartTrackingTouch(SeekBar seekBar) {
+    //if (seekBar.getId() == this.seekBar.getId()) {
+
+      if (!eventsSubscription.isUnsubscribed()) {
+
+        eventsSubscription.unsubscribe();
+      }
+    //}
+  }
+
+
+  @Override
+  public void onStopTrackingTouch(SeekBar seekBar) {
+    //if (seekBar.getId() == this.seekBar.getId()) {
+
+      playbackEngine.seekTo(seekTo);
+      eventsSubscription = playbackEngine.events()
+              .subscribeOn(Schedulers.io())
+              .observeOn(AndroidSchedulers.mainThread())
+              .subscribe(this);
+    //}
+  }
 
 
   /**
@@ -700,7 +882,7 @@ public class PlayBookActivity extends BaseActivity implements View.OnClickListen
 
     private void setProgress(DownloadEvent downloadEvent) {
       if (playBookFragment != null) {
-        playBookFragment.redrawProgress(downloadEvent);
+        playBookFragment.redrawDownloadProgress(downloadEvent);
       }
     }
 
