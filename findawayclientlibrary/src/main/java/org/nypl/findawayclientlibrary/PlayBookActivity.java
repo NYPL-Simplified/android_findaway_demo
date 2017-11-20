@@ -55,6 +55,22 @@ import rx.schedulers.Schedulers;
  *   not the error code, which is generic.  This will change in a future sdk.
  * - Playback always works, with any session key, as long as I’m using the Findaway sdk to play the Findaway audio content.
  *
+ * On Sleep Timer:
+ * - Sleep timer functionality will not be coming to Findaway sdk.  Must rool our own.
+ *
+ * On testing newer Findaway sdk:
+ * Kevin Kovach [10:21 AM]
+ * Also, I don't know what your release schedule/plan is but if you have some time before you're planning to release
+ * I might suggest you could look at a snapshot/development version of the next SDK update.
+ * That would give you a head start on all of the upcoming fixes and changes.
+ * If you add the following to your repositories in gradle you can access SNAPSHOTS...
+ * maven {
+ * url "http://maven.findawayworld.com/artifactory/libs-snapshot/"
+ * }
+ * The current one is, "implementation 'io.audioengine.mobile:all:8.0.0-SNAPSHOT'"
+ * I've changed some of the packages around while I've been working on protecting the internal classes that were never really meant to be public.
+ * I did this in response to working on the Javadocs as well.
+ *
  *
  * NOTE:  Saw this error, have not been able to duplicate it since.  Might have been an emulator glitch:
  * E/AudioFlinger: not enough memory for AudioTrack size=131296
