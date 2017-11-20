@@ -10,6 +10,7 @@ import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.ToggleButton;
 
 import io.audioengine.mobile.DownloadEvent;
 import io.audioengine.mobile.PlaybackEvent;
@@ -35,20 +36,17 @@ public class PlayBookFragment extends BaseFragment {
   private View fragmentView = null;
 
   private Button downloadButton;
+  // non-user-interactive, usually used to show download progress
   private ProgressBar downloadProgress;
   private TextView chapterPercentage, contentPercentage;
 
   private TextView currentTime, remainingTime;
-  private ImageButton previous, back, play, forward, next;
+  private ImageButton previousButton, backButton, playButton, forwardButton, nextButton;
+  private ToggleButton playbackSpeedButton;
 
+  // interactive, both shows progress and allows user to control
   private SeekBar playbackSeekBar;
 
-  // non-user-interactive, usually used to show download progress
-  //private ProgressBar mLoading;
-  //private Drawable mPauseDrawable;
-  //private Drawable mPlayDrawable;
-  //private ImageView mBackgroundImage;
-  //private String mCurrentArtUrl;
 
 
   /* ---------------------------------- LIFECYCLE METHODS ----------------------------------- */
@@ -101,25 +99,27 @@ public class PlayBookFragment extends BaseFragment {
     downloadButton.setOnLongClickListener((View.OnLongClickListener) callbackActivity);
 
     // set up the UI elements that will give playback info
-    previous = (ImageButton) fragmentView.findViewById(R.id.previous);
-    back = (ImageButton) fragmentView.findViewById(R.id.back10);
-    play = (ImageButton) fragmentView.findViewById(R.id.play);
-    forward = (ImageButton) fragmentView.findViewById(R.id.forward10);
-    next = (ImageButton) fragmentView.findViewById(R.id.next);
+    previousButton = (ImageButton) fragmentView.findViewById(R.id.previous);
+    backButton = (ImageButton) fragmentView.findViewById(R.id.back10);
+    playButton = (ImageButton) fragmentView.findViewById(R.id.play);
+    forwardButton = (ImageButton) fragmentView.findViewById(R.id.forward10);
+    nextButton = (ImageButton) fragmentView.findViewById(R.id.next);
     playbackSeekBar = (SeekBar) fragmentView.findViewById(R.id.playback_seek_bar);
+    playbackSpeedButton = (ToggleButton) fragmentView.findViewById(R.id.playback_speed_button);
 
     currentTime = (TextView) fragmentView.findViewById(R.id.position);
     remainingTime = (TextView) fragmentView.findViewById(R.id.remaining);
 
     // tell the playback buttons the parent activity will be listening to them
-    previous.setOnClickListener((View.OnClickListener) callbackActivity);
-    back.setOnClickListener((View.OnClickListener) callbackActivity);
-    play.setOnClickListener((View.OnClickListener) callbackActivity);
-    forward.setOnClickListener((View.OnClickListener) callbackActivity);
-    next.setOnClickListener((View.OnClickListener) callbackActivity);
+    previousButton.setOnClickListener((View.OnClickListener) callbackActivity);
+    backButton.setOnClickListener((View.OnClickListener) callbackActivity);
+    playButton.setOnClickListener((View.OnClickListener) callbackActivity);
+    forwardButton.setOnClickListener((View.OnClickListener) callbackActivity);
+    nextButton.setOnClickListener((View.OnClickListener) callbackActivity);
     playbackSeekBar.setOnSeekBarChangeListener((SeekBar.OnSeekBarChangeListener) callbackActivity);
+    playbackSpeedButton.setOnClickListener((View.OnClickListener) callbackActivity);
 
-    play.setTag("play");
+    playButton.setTag(getResources().getString(R.string.play));
 
   }// initializeControlsUI
 
@@ -140,8 +140,8 @@ public class PlayBookFragment extends BaseFragment {
    * @param newImageId
    */
   public void redrawPlayButton(String newText, int newImageId) {
-    play.setImageResource(newImageId);
-    play.setTag(newText);
+    playButton.setImageResource(newImageId);
+    playButton.setTag(newText);
   }
 
 
@@ -190,6 +190,16 @@ public class PlayBookFragment extends BaseFragment {
     downloadProgress.setSecondaryProgress(secondaryProgress);
     contentPercentage.setText(getString(R.string.contentPercentage, primaryProgress));
     chapterPercentage.setText(getString(R.string.chapterPercentage, secondaryProgress));
+  }
+
+
+  /**
+   * Set the display to reflect whether we're reading at increased speed.
+   *
+   * @param checked
+   */
+  public void redrawSpeedButton(boolean checked) {
+    playbackSpeedButton.setChecked(checked);
   }
 
 

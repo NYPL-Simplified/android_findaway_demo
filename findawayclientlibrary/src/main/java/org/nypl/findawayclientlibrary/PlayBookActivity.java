@@ -10,6 +10,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.SeekBar;
 import android.widget.Toast;
+import android.widget.ToggleButton;
 
 import java.io.File;
 
@@ -45,7 +46,15 @@ import rx.schedulers.Schedulers;
  * Communicates with the audio playing portion of the sdk.  Acts as an intermediary between
  * the background player service and the front-end ui fragment.
  *
- * TODO:  Figure out audio playback.
+ * On Session Keys:
+ * - When Bibliotheca obtains a new session key from Findaway, the previous session keys are not triggered to expire.
+ * - Findaway keeps a list of “valid” session keys for each book.  All of them will work for “a while”, whatever that “while” may be.
+ *   I can use either key in the app to resume download with.
+ * - Sometimes, the keys will expire.  This will happen on Findaway’s schedule (days, weeks?).  If the keys have expired, I will need to get a fresh key.
+ * - The only way to know that a key has expired, is to get a download error.  Right now, the information is in the download error message,
+ *   not the error code, which is generic.  This will change in a future sdk.
+ * - Playback always works, with any session key, as long as I’m using the Findaway sdk to play the Findaway audio content.
+ *
  *
  * NOTE:  Saw this error, have not been able to duplicate it since.  Might have been an emulator glitch:
  * E/AudioFlinger: not enough memory for AudioTrack size=131296
@@ -111,9 +120,16 @@ public class PlayBookActivity extends BaseActivity implements View.OnClickListen
 
 
   // Kevin's
-  //String sessionId = "964b5796-c67f-492d-8024-a69f3ba9be53";
+  String sessionIdKevin = "964b5796-c67f-492d-8024-a69f3ba9be53";
   // mine:
-  String sessionId = "be101b8f-5013-4328-9898-5fe24b302641";
+  String sessionIdReal1 = "be101b8f-5013-4328-9898-5fe24b302641";
+  String sessionIdReal2 = "1a03523c-8557-49cd-a046-2560d5f21056";
+  String sessionIdReal3 = "a54406b6-76cf-4241-bbf6-7f1e8b76d7f4";
+  String sessionIdReal4 = "720ba35d-8920-4621-9749-17f7ebe56316";
+  String sessionIdReal5 = "3a2c87d3-29d3-4d57-8a24-ba06fd8dcf62";
+
+  // fake -- real one with a letter changed
+  String sessionIdFake1 = "3a2c87d3-29d3-4d57-8a24-ba06fd8dcf61";
 
   // Kevin's test value
   // String contentId = "83380";
@@ -398,7 +414,7 @@ public class PlayBookActivity extends BaseActivity implements View.OnClickListen
    */
   private void initAudioEngine() {
     try {
-      AudioEngine.init(this, sessionId, LogLevel.VERBOSE);
+      AudioEngine.init(this, sessionIdReal1, LogLevel.VERBOSE);
       audioEngine = AudioEngine.getInstance();
     } catch (AudioEngineException e) {
       Log.e(TAG, "Error getting audio engine: " + e.getMessage());
@@ -556,40 +572,71 @@ public class PlayBookActivity extends BaseActivity implements View.OnClickListen
     }
 
 
-    if (view.getId() == R.id.play && view.getTag().equals("play")) {
+    if (view.getId() == R.id.play && view.getTag().equals(getResources().getString(R.string.play))) {
+      Log.d(TAG, "playback PLAY button clicked");
 
+      // NOTE: Can specify the chapter to start playing at here.
       playbackEngine.play(license, contentId, part, chapter, (int) lastPlaybackPosition);
       if (playBookFragment != null) {
         playBookFragment.redrawPlayButton(getResources().getString(R.string.pause), R.drawable.ic_pause_circle_outline_black_24dp);
       }
 
-    } else if (view.getId() == R.id.play && view.getTag().equals("pause")) {
+    } else {
+        if (view.getId() == R.id.play && view.getTag().equals(getResources().getString(R.string.pause))) {
+        Log.d(TAG, "playback PAUSE button clicked");
+        playbackEngine.pause();
 
-      playbackEngine.pause();
+        if (playBookFragment != null) {
+          playBookFragment.redrawPlayButton(getResources().getString(R.string.resume), R.drawable.ic_play_circle_outline_black_24dp);
+        }
 
-      if (playBookFragment != null) {
-        playBookFragment.redrawPlayButton(getResources().getString(R.string.resume), R.drawable.ic_play_circle_outline_black_24dp);
+      } else {
+        if (view.getId() == R.id.play && view.getTag().equals(getResources().getString(R.string.resume))) {
+          Log.d(TAG, "playback RESUME button clicked");
+          playbackEngine.resume();
+
+          if (playBookFragment != null) {
+            playBookFragment.redrawPlayButton(getResources().getString(R.string.pause), R.drawable.ic_pause_circle_outline_black_24dp);
+          }
+        } else {
+          if (view.getId() == R.id.back10) {
+            // TODO: what code would make sure not crossing boundary condition on file length?
+            Log.d(TAG, "playback BACK10 button clicked");
+            playbackEngine.seekTo(playbackEngine.getPosition() - 10000);
+          } else {
+            if (view.getId() == R.id.forward10) {
+              Log.d(TAG, "playback FWD10 button clicked");
+              playbackEngine.seekTo(playbackEngine.getPosition() + 10000);
+            } else {
+              if (view.getId() == R.id.previous) {
+                playbackEngine.previousChapter();
+              } else {
+                if (view.getId() == R.id.next) {
+                  playbackEngine.nextChapter();
+                } else {
+                  if (view.getId() == R.id.playback_speed_button) {
+                    // change playback speed
+                    if (((ToggleButton) view).isSelected() == true) {
+                      playbackEngine.setSpeed(1.0f);
+                      // setChecked sets the intrinsic boolean dataMember associated with your view object
+                      ((ToggleButton) view).setChecked(false);
+                      // setSelected sets the UI associated with your view object
+                      ((ToggleButton) view).setSelected(false);
+                      Log.d(TAG, "toggle button clicked: " + ((ToggleButton) view).isChecked() + ", speed=" + playbackEngine.getSpeed());
+                    } else {
+                      playbackEngine.setSpeed(2.0f);
+                      ((ToggleButton) view).setChecked(true);
+                      ((ToggleButton) view).setSelected(true);
+                    }
+                  } else {
+                    Log.e(TAG, "Cannot recognize clicked button.");
+                  }
+                }
+              }
+            }
+          }
+        }
       }
-
-    } else if (view.getId() == R.id.play && view.getTag().equals("resume")) {
-
-      playbackEngine.resume();
-
-      if (playBookFragment != null) {
-        playBookFragment.redrawPlayButton(getResources().getString(R.string.pause), R.drawable.ic_pause_circle_outline_black_24dp);
-      }
-    } else if (view.getId() == R.id.back10) {
-
-      playbackEngine.seekTo(playbackEngine.getPosition() - 10000);
-    } else if (view.getId() == R.id.forward10) {
-
-      playbackEngine.seekTo(playbackEngine.getPosition() + 10000);
-    } else if (view.getId() == R.id.previous) {
-
-      playbackEngine.previousChapter();
-    } else if (view.getId() == R.id.next) {
-
-      playbackEngine.nextChapter();
     }
 
   }// onClick
@@ -605,6 +652,23 @@ public class PlayBookActivity extends BaseActivity implements View.OnClickListen
   public void onError(Throwable e) {
     Log.e(TAG, "There was an error in the download or playback process: " + e.getMessage());
     e.printStackTrace();
+    // TODO: why am I seeing rx.exceptions.MissingBackpressureException on playback speed change?
+    /*
+11.324 5192-5192/org.nypl.findawaysdkdemo W/System.err: rx.exceptions.MissingBackpressureException
+11-17 22:18:11.329 5192-5192/org.nypl.findawaysdkdemo W/System.err:     at rx.internal.operators.OperatorObserveOn$ObserveOnSubscriber.onNext(OperatorObserveOn.java:160)
+11-17 22:18:11.334 5192-5192/org.nypl.findawaysdkdemo W/System.err:     at rx.internal.operators.OperatorSubscribeOn$1$1.onNext(OperatorSubscribeOn.java:53)
+11-17 22:18:11.338 5192-5192/org.nypl.findawaysdkdemo W/System.err:     at com.jakewharton.rxrelay.RelaySubscriptionManager$RelayObserver.onNext(RelaySubscriptionManager.java:205)
+11-17 22:18:11.342 5192-5192/org.nypl.findawaysdkdemo W/System.err:     at com.jakewharton.rxrelay.PublishRelay.call(PublishRelay.java:47)
+11-17 22:18:11.346 5192-5192/org.nypl.findawaysdkdemo W/System.err:     at com.jakewharton.rxrelay.SerializedAction1.call(SerializedAction1.java:84)
+11-17 22:18:11.350 5192-5192/org.nypl.findawaysdkdemo W/System.err:     at com.jakewharton.rxrelay.SerializedRelay.call(SerializedRelay.java:20)
+11-17 22:18:11.354 5192-5192/org.nypl.findawaysdkdemo W/System.err:     at io.audioengine.mobile.play.PlayerEventBus.send(PlayerEventBus.java:33)
+11-17 22:18:11.358 5192-5192/org.nypl.findawaysdkdemo W/System.err:     at io.audioengine.mobile.play.FindawayMediaPlayer.onPlayerStateChanged(FindawayMediaPlayer.java:373)
+11-17 22:18:11.363 5192-5192/org.nypl.findawaysdkdemo W/System.err:     at com.google.android.exoplayer.ExoPlayerImpl.handleEvent(ExoPlayerImpl.java:206)
+11-17 22:18:11.368 5192-5192/org.nypl.findawaysdkdemo W/System.err:     at com.google.android.exoplayer.ExoPlayerImpl$1.handleMessage(ExoPlayerImpl.java:65)
+11-17 22:18:11.371 5192-5192/org.nypl.findawaysdkdemo W/System.err:     at android.os.Handler.dispatchMessage(Handler.java:102)
+11-17 22:18:11.375 5192-5192/org.nypl.findawaysdkdemo W/System.err:     at android.os.Looper.loop(Looper.java:154)
+11-17 22:18:11.379 5192-5192/org.nypl.findawaysdkdemo W/System.err:     at android.os.HandlerThread.run(HandlerThread.java:61)
+     */
   }
 
 
@@ -734,6 +798,9 @@ public class PlayBookActivity extends BaseActivity implements View.OnClickListen
         Log.e(TAG, "DownloadEvent.FORBIDDEN");
       } else if (DownloadEvent.ERROR_DOWNLOADING_FILE.equals(downloadEvent.code)) {
         Log.e(TAG, "DownloadEvent.ERROR_DOWNLOADING_FILE");
+        // TODO: one possibility is downloadEvent.getMessage() == "write failed: ENOSPC (No space left on device)",
+        // which would be hard to catch based on a string message, but common enough to need handling.
+
       }
 
     } else {
@@ -742,6 +809,7 @@ public class PlayBookActivity extends BaseActivity implements View.OnClickListen
         Toast.makeText(this, getString(R.string.downloadStarted), Toast.LENGTH_SHORT).show();
 
         if (playBookFragment != null) {
+          // NOTE: changes the downloadButton.getText() to return "Pause"
           playBookFragment.redrawDownloadButton(getResources().getString(R.string.pause));
         }
       } else if (downloadEvent.code.equals(DownloadEvent.DOWNLOAD_PAUSED)) {
@@ -811,7 +879,15 @@ public class PlayBookActivity extends BaseActivity implements View.OnClickListen
     } else if (playbackEvent.code.equals(PlaybackEvent.PLAYBACK_STOPPED)) {
 
       Toast.makeText(this, "Playback stopped.", Toast.LENGTH_SHORT).show();
+    } else if (playbackEvent.code.equals(PlaybackEvent.CHAPTER_PLAYBACK_COMPLETED)) {
+      // NOTE:  "Do X to end of chapter" functionality can go here.
+      Toast.makeText(this, "Chapter completed.", Toast.LENGTH_SHORT).show();
     }
+  }
+
+
+  public void onPlaybackComplete() {
+    // TODO
   }
 
 

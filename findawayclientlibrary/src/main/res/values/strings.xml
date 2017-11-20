@@ -1,11 +1,12 @@
 <resources>
     <string name="app_name">findaway_client_library</string>
 
-    <string name="download">Download</string>
-    <string name="pause">Pause</string>
-    <string name="resume">Resume</string>
     <string name="cancel">Cancel</string>
     <string name="delete">Delete</string>
+    <string name="download">Download</string>
+    <string name="pause">Pause</string>
+    <string name="play">Play</string>
+    <string name="resume">Resume</string>
 
     <string name="chapterPercentage">Chapter %d%%</string>
     <string name="contentPercentage">Total %d%%</string>
