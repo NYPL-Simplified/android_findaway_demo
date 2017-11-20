@@ -47,6 +47,7 @@ import rx.schedulers.Schedulers;
  * the background player service and the front-end ui fragment.
  *
  * On Session Keys:
+ * - Bibliotheca endpoint returns a new session key, every time it's hit.  This is a bug, but not currently worth fixing.
  * - When Bibliotheca obtains a new session key from Findaway, the previous session keys are not triggered to expire.
  * - Findaway keeps a list of “valid” session keys for each book.  All of them will work for “a while”, whatever that “while” may be.
  *   I can use either key in the app to resume download with.
@@ -55,8 +56,17 @@ import rx.schedulers.Schedulers;
  *   not the error code, which is generic.  This will change in a future sdk.
  * - Playback always works, with any session key, as long as I’m using the Findaway sdk to play the Findaway audio content.
  *
+ * from phone call with Findaway:
+ * session are cached on Findaway side (reddis cache).  older keys will drop out.  This takes hours - weeks, but more likely weeks.
+ * license allows to play, session allows to download
+ * once downloaded, do not make calls to verify session, so yes, playing does work.
+ * streaming he's not sure of, but he thinks it would fail with bad sessions, bc streaming
+ * is like downloading to them.
+ * can have multiple sessions per checked out book to patron?  didn't get direct confirm, but I think so.
+ *
+ *
  * On Sleep Timer:
- * - Sleep timer functionality will not be coming to Findaway sdk.  Must rool our own.
+ * - Sleep timer functionality will not be coming to Findaway sdk.  Must roll our own.
  *
  * On testing newer Findaway sdk:
  * Kevin Kovach [10:21 AM]
@@ -106,8 +116,10 @@ import rx.schedulers.Schedulers;
  *
  * Created by daryachernikhova on 9/14/17.
  *
- * // TODO:  11-06 14:38:53.216 1335-2043/? E/BufferQueueProducer: [Toast] cancelBuffer: BufferQueue has been abandoned
- * TODO: crashing on multiple clicks on Pause button.
+ * TODO:  11-06 14:38:53.216 1335-2043/? E/BufferQueueProducer: [Toast] cancelBuffer: BufferQueue has been abandoned
+ *
+ * TODO: if can't download because will run out of drive space, and did not check for that condition before started downloading,
+ * then the download error has the explanation in the text of the error message, and needs to be caught and parsed.
  */
 public class PlayBookActivity extends BaseActivity implements View.OnClickListener, View.OnLongClickListener,
                                                               Observer<AudioEngineEvent>, SeekBar.OnSeekBarChangeListener {
