@@ -120,6 +120,11 @@ import rx.schedulers.Schedulers;
  *
  * TODO: if can't download because will run out of drive space, and did not check for that condition before started downloading,
  * then the download error has the explanation in the text of the error message, and needs to be caught and parsed.
+ *
+ * TODO:
+ * The session key should very rarely expire (fall out of Findaway's cache.  If it does, there will be a Download Error, but it does not
+ * currently have an easy-to-check code.  The session expiring could probably be found in the error message.  Since it's a rare event, it'd
+ * be OK to resolve all major errors by obtaining a new session key and re-trying the download.
  */
 public class PlayBookActivity extends BaseActivity implements View.OnClickListener, View.OnLongClickListener,
                                                               Observer<AudioEngineEvent>, SeekBar.OnSeekBarChangeListener {
